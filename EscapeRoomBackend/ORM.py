@@ -58,9 +58,10 @@ class User(Base):
     id = Column(Integer, primary_key=True)
     username = Column(String(50), nullable=False)
     password = Column(String(50), nullable=False)
+    email = Column(String(100), nullable=False)
 
     def __repr__(self):
-        return f"User id={self.id} username={self.username} password={self.password}"
+        return f"User id={self.id} username={self.username} password={self.password} email={self.email}"
 
     def get_username(self):
         return self.username
@@ -73,3 +74,10 @@ class User(Base):
 
     def set_password(self, value):
         self.password = value
+
+    def get_email(self):
+        return self.email
+
+    def set_email(self, value):
+        self.email = value
+
