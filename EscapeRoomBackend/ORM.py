@@ -10,9 +10,10 @@ class Story(Base):
     id = Column(Integer, primary_key=True)
     description = Column(Text, nullable=False)
     difficulty = Column(String(50), nullable=False)
+    type = Column(String(50), nullable=False)
 
     def __repr__(self):
-        return f"Story id={self.id} description={self.description}"
+        return f"Story id={self.id} description={self.description} difficulty={self.difficulty}"
 
     def get_description(self):
         return self.description
@@ -25,6 +26,14 @@ class Story(Base):
 
     def set_difficulty(self, value):
         self.difficulty = value
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "description": self.description,
+            "difficulty": self.difficulty,
+            "type": self.type
+        }
 
 
 class Puzzle(Base):
@@ -57,6 +66,15 @@ class Puzzle(Base):
 
     def set_correct_answer(self, value):
         self.correct_answer = value
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "story_id": self.story_id,
+            "question": self.question,
+            "possible_answers": self.possible_answers,
+            "correct_answer": self.correct_answer
+        }
 
 
 class User(Base):
