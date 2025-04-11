@@ -1,3 +1,4 @@
 google-genai~=1.9.0
 python-dotenv~=1.1.0
-sqlalchemy~=2.0.40
+SQLAlchemy~=2.0.40
+mysql-connector-python~=9.2.0
