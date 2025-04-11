@@ -20,7 +20,7 @@ def mathematical_story(difficulty):
                                            "kerdest tartalmazza), possible answers, correct answer]]. Csak a JSON "
                                            "legyen a valaszodban."
     )
-    print(response.text)
+    return response.text
 
 
 def informatics_story(difficulty):
@@ -34,7 +34,7 @@ def informatics_story(difficulty):
                                            "kerdest tartalmazza), possible answers, correct answer]]. "
                                            "Csak a JSON legyen a valaszodban."
     )
-    print(response.text)
+    return response.text
 
 
 def hungarian_literature_story(difficulty):
@@ -48,10 +48,10 @@ def hungarian_literature_story(difficulty):
                                            "kerdest tartalmazza), valaszlehetosegek, helyes megoldas]]. Csak a JSON "
                                            "legyen a valaszodban."
     )
-    print(response.text)
+    return response.text
 
 
 if __name__ == '__main__':
     # mathematical_story("konnyu")
-    informatics_story("konnyu")
+    print(informatics_story("konnyu"))
     # hungarian_literature_story("konnyu")
