@@ -9,6 +9,7 @@ class Story(Base):
 
     id = Column(Integer, primary_key=True)
     description = Column(Text, nullable=False)
+    difficulty = Column(String(50), nullable=False)
 
     def __repr__(self):
         return f"Story id={self.id} description={self.description}"
@@ -18,6 +19,12 @@ class Story(Base):
 
     def set_description(self, value):
         self.description = value
+
+    def get_diffuculty(self):
+        return self.difficulty
+
+    def set_difficulty(self, value):
+        self.difficulty = value
 
 
 class Puzzle(Base):
