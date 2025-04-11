@@ -57,7 +57,7 @@ class User(Base):
 
     id = Column(Integer, primary_key=True)
     username = Column(String(50), nullable=False)
-    password = Column(String(50), nullable=False)
+    password = Column(String(100), nullable=False)
     email = Column(String(100), nullable=False)
 
     def __repr__(self):
@@ -80,4 +80,12 @@ class User(Base):
 
     def set_email(self, value):
         self.email = value
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "username": self.username,
+            "password": self.password,
+            "email": self.email
+        }
 
