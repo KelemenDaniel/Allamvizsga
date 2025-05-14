@@ -5,25 +5,33 @@ from models import *
 
 app = FastAPI()
 
+
 @app.post("/register")
 def register(user: UserIn):
-    success = db.register_user(user.to_dict())
+    if not user.username.strip() or not user.email.strip() or not user.password.strip():
+        raise HTTPException(status_code=422, detail="All fields must be filled and non-empty.")
+
+    success = db.register_user(user.dict())
     if not success:
         raise HTTPException(status_code=400, detail="Username or email already exists.")
     return {"message": "User registered successfully"}
 
 
 @app.post("/login")
-def login(login_data: LoginIn):
+def login(login_data: LoginCredentials):
+    if not login_data.email.strip() or not login_data.password.strip():
+        raise HTTPException(status_code=422, detail="All fields must be filled and non-empty.")
+
     user_id = db.login_user(login_data.email, login_data.password)
-    if user_id is True:
+    if not user_id:
         raise HTTPException(status_code=401, detail="Invalid credentials")
+
     return {"message": "Login successful", "user_id": user_id}
 
 
 @app.post("/story")
 def create_story(story: StoryIn):
-    story_id = db.add_story(story.to_dict())
+    story_id = db.add_story(story.dict())
     return {"message": "Story created", "story_id": story_id}
 
 
@@ -43,7 +51,7 @@ def get_random_stories():
 
 @app.post("/puzzle")
 def create_puzzle(puzzle: PuzzleIn):
-    db.add_puzzle(puzzle.to_dict())
+    db.add_puzzle(puzzle.dict())
     return {"message": "Puzzle added"}
 
 

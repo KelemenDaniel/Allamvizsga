@@ -1,15 +1,15 @@
 from typing import List
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 
 
 class UserIn(BaseModel):
     username: str
     password: str
-    email: str
+    email: EmailStr
 
 
-class LoginIn(BaseModel):
-    email: str
+class LoginCredentials(BaseModel):
+    email: EmailStr
     password: str
 
 
@@ -24,3 +24,4 @@ class PuzzleIn(BaseModel):
     question: str
     possible_answers: List[str]
     correct_answer: str
+
