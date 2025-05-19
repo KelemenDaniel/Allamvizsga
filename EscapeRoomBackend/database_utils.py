@@ -65,7 +65,7 @@ def login_user(email: str, password: str):
         user_data = user.to_dict()
         if user_data['email'] == email and compare_password(password, user_data['password']):
             return user.id
-    return True
+    return False
 
 
 def add_story(story: dict):
@@ -116,3 +116,4 @@ def get_three_random_stories():
         return None
     return [story.to_dict() for story in stories]
 
+print(login_user("asd@hjsdg.com", "asd12345678"))
