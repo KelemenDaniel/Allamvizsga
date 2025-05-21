@@ -5,6 +5,7 @@ from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker
 from ORM import User, Story, Puzzle
 
+
 load_dotenv()
 database_url = os.getenv("DATABASE_URL")
 
@@ -116,4 +117,3 @@ def get_three_random_stories():
         return None
     return [story.to_dict() for story in stories]
 
-print(login_user("asd@hjsdg.com", "asd12345678"))
