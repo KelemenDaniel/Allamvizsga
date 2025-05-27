@@ -38,6 +38,7 @@ public class StoryMenu : MonoBehaviour
     void Start()
     {
         GetRandomStories();
+        outputText.enabled = false;
     }
 
     public void GetRandomStories()
@@ -52,7 +53,9 @@ public class StoryMenu : MonoBehaviour
 
         if (!typeMap.ContainsKey(selectedTypeHu) || !difficultyMap.ContainsKey(selectedDifficultyHu))
         {
+            outputText.enabled = true;
             outputText.text = "Ismeretlen típus vagy nehézség.";
+            StartCoroutine(HideOutputAfterSeconds(5));
             return;
         }
 
@@ -70,7 +73,9 @@ public class StoryMenu : MonoBehaviour
 
         if (genRequest.isNetworkError || genRequest.isHttpError)
         {
+            outputText.enabled = true;
             outputText.text = "Hiba a történet generálásakor: " + genRequest.error;
+            StartCoroutine(HideOutputAfterSeconds(5));
             yield break;
         }
 
@@ -109,7 +114,9 @@ public class StoryMenu : MonoBehaviour
 
         if (storyPost.isNetworkError || storyPost.isHttpError)
         {
+            outputText.enabled = true;
             outputText.text = "Hiba a történet feltöltésekor: " + storyPost.error;
+            StartCoroutine(HideOutputAfterSeconds(5));
             yield break;
         }
 
@@ -144,7 +151,9 @@ public class StoryMenu : MonoBehaviour
 
             if (puzzlePost.isNetworkError || puzzlePost.isHttpError)
             {
+                outputText.enabled = true;
                 outputText.text = "Hiba a puzzle feltöltésekor: " + puzzlePost.error;
+                StartCoroutine(HideOutputAfterSeconds(5));
                 yield break;
             }
         }
@@ -160,7 +169,9 @@ public class StoryMenu : MonoBehaviour
 
         btn.onClick.AddListener(() => SelectStory(storyId));
 
+        outputText.enabled = true;
         outputText.text = "Sikeresen generált és feltöltött történet a következő ID-val: " + storyId;
+        StartCoroutine(HideOutputAfterSeconds(5));
     }
 
     void DisplayStoriesWithClear(string json)
@@ -195,7 +206,9 @@ public class StoryMenu : MonoBehaviour
 
     void SelectStory(int id)
     {
+        outputText.enabled = true;
         outputText.text = $"Story with ID {id} selected!";
+        StartCoroutine(HideOutputAfterSeconds(5));
     }
 
     IEnumerator Get(string endpoint, System.Action<string> callback)
@@ -212,4 +225,11 @@ public class StoryMenu : MonoBehaviour
             callback(www.downloadHandler.text);
         }
     }
+
+    IEnumerator HideOutputAfterSeconds(float seconds)
+    {
+        yield return new WaitForSeconds(seconds);
+        outputText.enabled = false;
+    }
+
 }
