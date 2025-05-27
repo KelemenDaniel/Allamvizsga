@@ -44,9 +44,9 @@ def hungarian_literature_story(difficulty):
                                            f"pontosan 5 rejtvenyt teszel fel {difficulty} nehezsegu magyar irodalom "
                                            "temaban, mindegyik rejtvenynek legyen 4 valaszlehetosege, a tortentetet "
                                            "es a rejtvenyeket illetve megoldasokat json formatumban add meg. A jsonban "
-                                           "csak egy tortenet, egy rejtvenyek[rejtveny[kerdes(csak konkretan a "
-                                           "kerdest tartalmazza), valaszlehetosegek, helyes megoldas]]. Csak a JSON "
-                                           "legyen a valaszodban."
+                                           "csak egy story, egy puzzles[puzzle[question(csak konkretan a "
+                                           "kerdest tartalmazza), possible answers, correct answer]]. "
+                                           "Csak a JSON legyen a valaszodban."
     )
     return response.text
 
