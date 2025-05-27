@@ -4,6 +4,7 @@ using UnityEngine.Networking;
 using System.Collections;
 using SimpleJSON;
 using System.Collections.Generic;
+using UnityEngine.SceneManagement;
 
 public class StoryMenu : MonoBehaviour
 {
@@ -34,6 +35,8 @@ public class StoryMenu : MonoBehaviour
         { "Közepes", "közepes" },
         { "Nehéz", "nehéz" }
     };
+
+    private Dictionary<int, string> storyTexts = new Dictionary<int, string>();
 
     void Start()
     {
@@ -165,7 +168,10 @@ public class StoryMenu : MonoBehaviour
 
         Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
         string typeHu = typeMapReverse.ContainsKey(type) ? typeMapReverse[type] : type;
+        string fullText = $"{typeHu} ({difficulty})\n{description}";
         btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
+
+        storyTexts[storyId] = fullText;
 
         btn.onClick.AddListener(() => SelectStory(storyId));
 
@@ -198,18 +204,31 @@ public class StoryMenu : MonoBehaviour
 
         string typeHu = typeMapReverse.ContainsKey(typeEn) ? typeMapReverse[typeEn] : typeEn;
 
+        string fullText = $"{typeHu} ({difficulty})\n{description}";
+        storyTexts[id] = fullText;
+
         Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
-        btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
+        btn.GetComponentInChildren<Text>().text = fullText;
         btn.onClick.AddListener(() => SelectStory(id));
     }
 
 
     void SelectStory(int id)
     {
-        outputText.enabled = true;
-        outputText.text = $"Story with ID {id} selected!";
-        StartCoroutine(HideOutputAfterSeconds(5));
+        if (!storyTexts.ContainsKey(id))
+        {
+            outputText.enabled = true;
+            outputText.text = $"Nem található történet az ID-val: {id}";
+            return;
+        }
+
+        string story = storyTexts[id];
+        PlayerPrefs.SetString("SelectedStory", story);
+        PlayerPrefs.Save();
+
+        SceneManager.LoadScene("StoryIntroScene");
     }
+
 
     IEnumerator Get(string endpoint, System.Action<string> callback)
     {
