@@ -14,20 +14,26 @@ public class StoryMenu : MonoBehaviour
 
     private string baseUrl = "https://escaperoom-fastapi.azurewebsites.net/";
 
+    private Dictionary<string, string> typeMapReverse = new Dictionary<string, string>
+    {
+        { "mathematics", "Matematika" },
+        { "literature", "Magyar irodalom" },
+        { "informatics", "Informatika" }
+    };
+
     private Dictionary<string, string> typeMap = new Dictionary<string, string>
-{
-    { "Matematika", "mathematics" },
-    { "Magyar irodalom", "literature" },
-    { "Informatika", "informatics" }
-};
+    {
+        { "Matematika", "mathematics" },
+        { "Magyar irodalom", "literature" },
+        { "Informatika", "informatics" }
+    };
 
     private Dictionary<string, string> difficultyMap = new Dictionary<string, string>
-{
-    { "Könnyű", "könnyű" },
-    { "Közepes", "közepes" },
-    { "Nehéz", "nehéz" }
-};
-
+    {
+        { "Könnyű", "könnyű" },
+        { "Közepes", "közepes" },
+        { "Nehéz", "nehéz" }
+    };
 
     void Start()
     {
@@ -36,7 +42,7 @@ public class StoryMenu : MonoBehaviour
 
     public void GetRandomStories()
     {
-        StartCoroutine(Get("/stories/random", DisplayStories));
+        StartCoroutine(Get("/stories/random", DisplayStoriesWithClear));
     }
 
     public void GenerateStory()
@@ -56,7 +62,6 @@ public class StoryMenu : MonoBehaviour
         StartCoroutine(GenerateAndUploadStory(type, difficulty));
     }
 
-
     IEnumerator GenerateAndUploadStory(string type, string difficulty)
     {
         string endpoint = $"/generate/{type}/{difficulty}";
@@ -65,7 +70,7 @@ public class StoryMenu : MonoBehaviour
 
         if (genRequest.isNetworkError || genRequest.isHttpError)
         {
-            outputText.text = "Hiba a történet generálásakor:" + genRequest.error;
+            outputText.text = "Hiba a történet generálásakor: " + genRequest.error;
             yield break;
         }
 
@@ -86,20 +91,9 @@ public class StoryMenu : MonoBehaviour
             rawResponse = rawResponse.Substring(0, rawResponse.Length - 3).Trim();
         }
 
-        Debug.Log("Cleaned JSON: " + rawResponse);
-
         var generated = JSON.Parse(rawResponse);
-        Debug.Log("Generated node type: " + generated.Tag);
-
-
         string description = generated["story"];
-
-        var puzzlesNode = generated["puzzles"];
-
-        JSONArray puzzles = puzzlesNode.AsArray;
-
-
-
+        JSONArray puzzles = generated["puzzles"].AsArray;
 
         JSONObject storyJson = new JSONObject();
         storyJson["description"] = description;
@@ -155,32 +149,49 @@ public class StoryMenu : MonoBehaviour
             }
         }
 
+        if (storyButtonContainer.childCount >= 4)
+        {
+            Destroy(storyButtonContainer.GetChild(0).gameObject);
+        }
 
         Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
-        btn.GetComponentInChildren<Text>().text = $"{type} ({difficulty})\n{description}";
+        string typeHu = typeMapReverse.ContainsKey(type) ? typeMapReverse[type] : type;
+        btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
+
         btn.onClick.AddListener(() => SelectStory(storyId));
 
         outputText.text = "Sikeresen generált és feltöltött történet a következő ID-val: " + storyId;
     }
 
-    void DisplayStories(string json)
+    void DisplayStoriesWithClear(string json)
     {
         foreach (Transform child in storyButtonContainer)
+        {
             Destroy(child.gameObject);
+        }
 
         var stories = JSON.Parse(json).AsArray;
+
         foreach (JSONNode story in stories)
         {
-            Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
-            string type = story["type"];
-            string difficulty = story["difficulty"];
-            string description = story["description"];
-            int id = story["id"].AsInt;
-
-            btn.GetComponentInChildren<Text>().text = $"{type} ({difficulty})\n{description}";
-            btn.onClick.AddListener(() => SelectStory(id));
+            CreateStoryButton(story);
         }
     }
+
+    void CreateStoryButton(JSONNode story)
+    {
+        string typeEn = story["type"];
+        string difficulty = story["difficulty"];
+        string description = story["description"];
+        int id = story["id"].AsInt;
+
+        string typeHu = typeMapReverse.ContainsKey(typeEn) ? typeMapReverse[typeEn] : typeEn;
+
+        Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
+        btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
+        btn.onClick.AddListener(() => SelectStory(id));
+    }
+
 
     void SelectStory(int id)
     {
