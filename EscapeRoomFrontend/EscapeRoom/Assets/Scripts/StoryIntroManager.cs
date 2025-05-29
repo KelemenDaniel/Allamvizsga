@@ -24,7 +24,7 @@ public class StoryIntroManager : MonoBehaviour
 
     IEnumerator FadeIn()
     {
-        float duration = 1.5f;
+        float duration = 3.5f;
         float elapsed = 0f;
 
         while (elapsed < duration)
@@ -48,7 +48,7 @@ public class StoryIntroManager : MonoBehaviour
 
     IEnumerator FadeOutAndLoadScene()
     {
-        float duration = 1.5f;
+        float duration = 2.5f;
         float elapsed = 0f;
 
         while (elapsed < duration)
