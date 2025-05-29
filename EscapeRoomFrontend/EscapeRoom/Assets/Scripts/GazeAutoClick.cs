@@ -1,0 +1,93 @@
+﻿using UnityEngine;
+using UnityEngine.EventSystems;
+using UnityEngine.UI;
+
+public class GazeAutoClick : MonoBehaviour
+{
+    public float gazeClickDelay = 2.0f;
+    public Image gazeProgressImage; // World-space UI image near reticle
+
+    private float gazeTimer = 0f;
+    private GameObject lastGazedObject = null;
+
+    void Update()
+    {
+        PointerEventData pointerData = new PointerEventData(EventSystem.current)
+        {
+            position = new Vector2(Screen.width / 2f, Screen.height / 2f)
+        };
+
+        var results = new System.Collections.Generic.List<RaycastResult>();
+        EventSystem.current.RaycastAll(pointerData, results);
+
+        GameObject currentGazed = results.Count > 0 ? results[0].gameObject : null;
+
+        // Detect common interactables
+        Button button = currentGazed?.GetComponentInParent<Button>();
+        Dropdown dropdown = currentGazed?.GetComponentInParent<Dropdown>();
+        Toggle toggle = currentGazed?.GetComponentInParent<Toggle>();
+
+        bool validGazeTarget = button || dropdown || toggle;
+
+        // Update filler animation and simulate hover effects
+        if (validGazeTarget)
+        {
+            if (currentGazed != lastGazedObject)
+            {
+                // Reset previous hover
+                if (lastGazedObject != null)
+                    ExecuteEvents.Execute(lastGazedObject, pointerData, ExecuteEvents.pointerExitHandler);
+
+                // Trigger highlight animation
+                ExecuteEvents.Execute(currentGazed, pointerData, ExecuteEvents.pointerEnterHandler);
+
+                lastGazedObject = currentGazed;
+                gazeTimer = 0f;
+                if (gazeProgressImage)
+                    gazeProgressImage.fillAmount = 0f;
+            }
+
+            // Animate fill
+            gazeTimer += Time.deltaTime;
+            if (gazeProgressImage)
+                gazeProgressImage.fillAmount = gazeTimer / gazeClickDelay;
+
+            // Auto-click when filled
+            if (gazeTimer >= gazeClickDelay)
+            {
+                if (toggle)
+                {
+                    Debug.Log("Gaze click Toggle: " + toggle.name);
+                    ExecuteEvents.Execute(toggle.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
+                }
+                else if (button)
+                {
+                    Debug.Log("Gaze click Button: " + button.name);
+                    button.onClick.Invoke();
+                }
+                else if (dropdown)
+                {
+                    Debug.Log("Gaze click Dropdown: " + dropdown.name);
+                    ExecuteEvents.Execute(dropdown.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
+                }
+
+                ResetGaze();
+            }
+        }
+        else
+        {
+            if (lastGazedObject != null)
+                ExecuteEvents.Execute(lastGazedObject, pointerData, ExecuteEvents.pointerExitHandler);
+
+            ResetGaze();
+        }
+    }
+
+    private void ResetGaze()
+    {
+        lastGazedObject = null;
+        gazeTimer = 0f;
+        if (gazeProgressImage)
+            gazeProgressImage.fillAmount = 0f;
+    }
+}
