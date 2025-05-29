@@ -56,7 +56,6 @@ GameObject:
   - component: {fileID: 324997346909433160}
   - component: {fileID: 324997346909433164}
   - component: {fileID: 324997346909433165}
-  - component: {fileID: 324997346909433162}
   - component: {fileID: 324997346909433163}
   m_Layer: 0
   m_Name: Head
@@ -138,25 +137,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   maxRaycastHits: 64
---- !u!114 &324997346909433162
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 324997346909433161}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e7dcc90c2e60c4011896c7f21fc1f557, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  raycastMode: 2
-  overridePointerCamera: {fileID: 0}
-  drawDebugRays: 0
-  maxReticleDistance: 20
-  reticleSegments: 20
-  reticleGrowthSpeed: 8
-  reticleSortingOrder: 32767
 --- !u!81 &324997346909433163
 AudioListener:
   m_ObjectHideFlags: 0
