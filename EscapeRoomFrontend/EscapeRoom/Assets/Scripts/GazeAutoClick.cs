@@ -5,7 +5,7 @@ using UnityEngine.UI;
 public class GazeAutoClick : MonoBehaviour
 {
     public float gazeClickDelay = 2.0f;
-    public Image gazeProgressImage; // World-space UI image near reticle
+    public Image gazeProgressImage;
 
     private float gazeTimer = 0f;
     private GameObject lastGazedObject = null;
@@ -22,23 +22,19 @@ public class GazeAutoClick : MonoBehaviour
 
         GameObject currentGazed = results.Count > 0 ? results[0].gameObject : null;
 
-        // Detect common interactables
         Button button = currentGazed?.GetComponentInParent<Button>();
         Dropdown dropdown = currentGazed?.GetComponentInParent<Dropdown>();
         Toggle toggle = currentGazed?.GetComponentInParent<Toggle>();
 
         bool validGazeTarget = button || dropdown || toggle;
 
-        // Update filler animation and simulate hover effects
         if (validGazeTarget)
         {
             if (currentGazed != lastGazedObject)
             {
-                // Reset previous hover
                 if (lastGazedObject != null)
                     ExecuteEvents.Execute(lastGazedObject, pointerData, ExecuteEvents.pointerExitHandler);
 
-                // Trigger highlight animation
                 ExecuteEvents.Execute(currentGazed, pointerData, ExecuteEvents.pointerEnterHandler);
 
                 lastGazedObject = currentGazed;
@@ -47,12 +43,10 @@ public class GazeAutoClick : MonoBehaviour
                     gazeProgressImage.fillAmount = 0f;
             }
 
-            // Animate fill
             gazeTimer += Time.deltaTime;
             if (gazeProgressImage)
                 gazeProgressImage.fillAmount = gazeTimer / gazeClickDelay;
 
-            // Auto-click when filled
             if (gazeTimer >= gazeClickDelay)
             {
                 if (toggle)

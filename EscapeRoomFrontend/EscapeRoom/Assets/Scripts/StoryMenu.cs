@@ -224,10 +224,14 @@ public class StoryMenu : MonoBehaviour
 
         string story = storyTexts[id];
         PlayerPrefs.SetString("SelectedStory", story);
+        PlayerPrefs.SetInt("SelectedStoryId", id);
         PlayerPrefs.Save();
 
+        Debug.Log($"Saved SelectedStoryId = {id}");
         SceneManager.LoadScene("StoryIntroScene");
     }
+
+
 
 
     IEnumerator Get(string endpoint, System.Action<string> callback)
