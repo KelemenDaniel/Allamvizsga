@@ -17,6 +17,9 @@ public class PuzzleFetcher : MonoBehaviour
 
     public Text questionText;
     public Text[] optionFields;
+    public Button[] answerButtons;
+    private Puzzle currentPuzzle;
+
 
     IEnumerator Start()
     {
@@ -35,9 +38,9 @@ public class PuzzleFetcher : MonoBehaviour
     }
 
 
+
     IEnumerator FetchPuzzles(int storyId)
     {
-
         string url = $"https://escaperoom-fastapi.azurewebsites.net/puzzles/{storyId}";
         UnityWebRequest www = UnityWebRequest.Get(url);
         yield return www.SendWebRequest();
@@ -48,29 +51,64 @@ public class PuzzleFetcher : MonoBehaviour
             yield break;
         }
 
-        // Parse directly the array
         Puzzle[] puzzles = JsonHelper.FromJson<Puzzle>(FixJsonArray(www.downloadHandler.text));
-
         if (puzzles.Length == 0)
         {
             Debug.LogWarning("No puzzles received.");
             yield break;
         }
 
-        // Show the first puzzle
-        Puzzle first = puzzles[0];
-        questionText.text = first.question;
+        currentPuzzle = puzzles[0];
+
+        questionText.text = currentPuzzle.question;
 
         for (int i = 0; i < optionFields.Length; i++)
         {
-            if (i < first.possible_answers.Length)
-                optionFields[i].text = first.possible_answers[i];
+            if (i < currentPuzzle.possible_answers.Length)
+            {
+                optionFields[i].text = currentPuzzle.possible_answers[i];
+                int index = i;
+
+                answerButtons[i].onClick.RemoveAllListeners();
+                answerButtons[i].onClick.AddListener(() => OnAnswerSelected(index));
+            }
             else
-                optionFields[i].text = ""; // Clear any extra UI fields
+            {
+                optionFields[i].text = "";
+                answerButtons[i].gameObject.SetActive(false);
+            }
         }
     }
 
-    // Fix raw array JSON for Unity
+    public GameObject door;
+    public Animator doorAnimator;
+
+    public void OnAnswerSelected(int index)
+    {
+        string selectedAnswer = optionFields[index].text;
+        Debug.Log("Selected Answer: " + selectedAnswer);
+
+        if (selectedAnswer == currentPuzzle.correct_answer)
+        {
+            Debug.Log("Correct Answer!");
+
+            if (doorAnimator != null)
+            {
+                doorAnimator.SetTrigger("Open");
+            }
+
+            if (door != null)
+            {
+                door.SetActive(false);
+            }
+        }
+        else
+        {
+            Debug.Log("Wrong Answer!");
+        }
+    }
+
+
     private string FixJsonArray(string json)
     {
         return "{\"Items\":" + json + "}";
