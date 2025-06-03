@@ -19,6 +19,9 @@ public class PuzzleFetcher : MonoBehaviour
     public Text[] optionFields;
     public Button[] answerButtons;
     private Puzzle currentPuzzle;
+    public int puzzleIndex = 0;
+    private Puzzle[] allPuzzles;
+
 
 
     IEnumerator Start()
@@ -51,26 +54,32 @@ public class PuzzleFetcher : MonoBehaviour
             yield break;
         }
 
-        Puzzle[] puzzles = JsonHelper.FromJson<Puzzle>(FixJsonArray(www.downloadHandler.text));
-        if (puzzles.Length == 0)
+        allPuzzles = JsonHelper.FromJson<Puzzle>(FixJsonArray(www.downloadHandler.text));
+
+        if (puzzleIndex < 0 || puzzleIndex >= allPuzzles.Length)
         {
-            Debug.LogWarning("No puzzles received.");
+            Debug.LogWarning("Invalid puzzle index!");
             yield break;
         }
 
-        currentPuzzle = puzzles[0];
+        ShowPuzzle(allPuzzles[puzzleIndex]);
+    }
 
-        questionText.text = currentPuzzle.question;
+    void ShowPuzzle(Puzzle puzzle)
+    {
+        currentPuzzle = puzzle;
+        questionText.text = puzzle.question;
 
         for (int i = 0; i < optionFields.Length; i++)
         {
-            if (i < currentPuzzle.possible_answers.Length)
+            if (i < puzzle.possible_answers.Length)
             {
-                optionFields[i].text = currentPuzzle.possible_answers[i];
+                optionFields[i].text = puzzle.possible_answers[i];
                 int index = i;
 
                 answerButtons[i].onClick.RemoveAllListeners();
                 answerButtons[i].onClick.AddListener(() => OnAnswerSelected(index));
+                answerButtons[i].gameObject.SetActive(true);
             }
             else
             {
@@ -79,6 +88,7 @@ public class PuzzleFetcher : MonoBehaviour
             }
         }
     }
+
 
     public GameObject door;
     public Animator doorAnimator;
