@@ -47,8 +47,33 @@ public class PlayerMovement : MonoBehaviour
 
                 if (Input.anyKeyDown)
                 {
-                    targetPosition = new Vector3(hit.point.x, playerRoot.position.y, hit.point.z);
+                    Vector3 destination = new Vector3(hit.point.x, playerRoot.position.y, hit.point.z);
+                    Vector3 direction = destination - playerRoot.position;
+                    float distance = direction.magnitude;
+
+                    // Capsule collider dimensions
+                    float capsuleRadius = 0.5f;
+                    float capsuleHeight = 3f;
+                    float halfHeight = (capsuleHeight / 2f) - capsuleRadius;
+
+                    // Define the capsule’s two endpoints
+                    Vector3 point1 = playerRoot.position + Vector3.up * capsuleRadius;
+                    Vector3 point2 = playerRoot.position + Vector3.up * (capsuleHeight - capsuleRadius);
+
+                    // Do the cast against wall layers (not ground only)
+                    int obstacleLayers = LayerMask.GetMask("Walls"); // include walls
+
+                    if (!Physics.CapsuleCast(point1, point2, capsuleRadius, direction.normalized, distance, obstacleLayers))
+                    {
+                        targetPosition = destination;
+                    }
+                    else
+                    {
+                        Debug.Log("Blocked by obstacle. Movement canceled.");
+                    }
                 }
+
+
             }
             else
             {

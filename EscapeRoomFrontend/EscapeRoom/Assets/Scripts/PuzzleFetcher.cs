@@ -82,6 +82,7 @@ public class PuzzleFetcher : MonoBehaviour
 
     public GameObject door;
     public Animator doorAnimator;
+    public GameObject littleDoor;
 
     public void OnAnswerSelected(int index)
     {
@@ -95,11 +96,12 @@ public class PuzzleFetcher : MonoBehaviour
             if (doorAnimator != null)
             {
                 doorAnimator.SetTrigger("Open");
+                doorAnimator.SetTrigger("StayOpen");
             }
 
             if (door != null)
             {
-                door.SetActive(false);
+                door.layer = LayerMask.NameToLayer("Default");
             }
         }
         else
@@ -107,6 +109,7 @@ public class PuzzleFetcher : MonoBehaviour
             Debug.Log("Wrong Answer!");
         }
     }
+
 
 
     private string FixJsonArray(string json)
