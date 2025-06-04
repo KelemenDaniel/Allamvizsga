@@ -131,6 +131,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: door_2
       objectReference: {fileID: 0}
+    - target: {fileID: 115324, guid: 820591594dcfa124d8a9c5d016d6c22c, type: 3}
+      propertyPath: m_Layer
+      value: 9
+      objectReference: {fileID: 0}
     - target: {fileID: 415124, guid: 820591594dcfa124d8a9c5d016d6c22c, type: 3}
       propertyPath: m_LocalPosition.x
       value: -4.5512695
@@ -173,6 +177,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 415124, guid: 820591594dcfa124d8a9c5d016d6c22c, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 141230, guid: 820591594dcfa124d8a9c5d016d6c22c, type: 3}
+      propertyPath: m_Layer
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 187554, guid: 820591594dcfa124d8a9c5d016d6c22c, type: 3}
+      propertyPath: m_Layer
       value: 0
       objectReference: {fileID: 0}
     m_RemovedComponents: []
@@ -305,7 +317,7 @@ Transform:
   - {fileID: 304956451}
   - {fileID: 770391024}
   m_Father: {fileID: 0}
-  m_RootOrder: 6
+  m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &21519179
 GameObject:
@@ -7160,7 +7172,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 2.8276699, y: 10, z: 3.2651122}
+  m_Size: {x: 2.2, y: 10, z: 2.2}
   m_Center: {x: -0.0000076293945, y: 0.6169829, z: 0}
 --- !u!1 &423331623
 GameObject:
@@ -12451,7 +12463,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 7
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1001 &852326771
 PrefabInstance:
@@ -22858,7 +22870,7 @@ Transform:
   - {fileID: 308459188}
   - {fileID: 370921738}
   m_Father: {fileID: 0}
-  m_RootOrder: 5
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &1637461602 stripped
 Transform:
@@ -26437,7 +26449,7 @@ BoxCollider:
   m_IsTrigger: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Size: {x: 2.5, y: 10, z: 3}
+  m_Size: {x: 2, y: 10, z: 2}
   m_Center: {x: 1.5000546, y: 0.8835567, z: 1.9}
 --- !u!4 &1859116315 stripped
 Transform:
