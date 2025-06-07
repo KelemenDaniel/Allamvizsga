@@ -18,18 +18,10 @@ public class PlayerMovement : MonoBehaviour
 
     void Start()
     {
-        StartCoroutine(LoadVR());
         targetPosition = playerRoot.position;
         feetIconRotationPlaceholder = new GameObject("FeetIconRotationPlaceholder").transform;
     }
 
-
-    IEnumerator LoadVR()
-    {
-        XRSettings.LoadDeviceByName("OpenVR");
-        yield return null;
-        XRSettings.enabled = true;
-    }
 
     void Update()
     {
