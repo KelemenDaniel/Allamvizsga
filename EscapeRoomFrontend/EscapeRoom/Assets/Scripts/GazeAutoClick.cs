@@ -26,7 +26,7 @@ public class GazeAutoClick : MonoBehaviour
         Dropdown dropdown = currentGazed?.GetComponentInParent<Dropdown>();
         Toggle toggle = currentGazed?.GetComponentInParent<Toggle>();
 
-        bool validGazeTarget = button || dropdown || toggle;
+        bool validGazeTarget = button || dropdown || toggle ;
         //if (results.Count > 0)
         //    Debug.Log("Gaze hit: " + results[0].gameObject.name);
         //else

@@ -60,6 +60,7 @@ public class PuzzleFetcher : MonoBehaviour
         if (www.isNetworkError || www.isHttpError)
         {
             Debug.LogError("Error fetching puzzles: " + www.error);
+            FetchPuzzles(storyId);
             yield break;
         }
 
