@@ -21,12 +21,20 @@ public class PuzzleFetcher : MonoBehaviour
     private Puzzle currentPuzzle;
     public int puzzleIndex = 0;
     private Puzzle[] allPuzzles;
+    private ColorBlock[] originalColors;
+
 
 
 
     IEnumerator Start()
     {
         Debug.Log("PuzzleFetcher.Start() called");
+
+        originalColors = new ColorBlock[answerButtons.Length];
+        for (int i = 0; i < answerButtons.Length; i++)
+        {
+            originalColors[i] = answerButtons[i].colors;
+        }
 
         int storyId = PlayerPrefs.GetInt("SelectedStoryId", -1);
         if (storyId == -1)
@@ -39,6 +47,7 @@ public class PuzzleFetcher : MonoBehaviour
 
         yield return StartCoroutine(FetchPuzzles(storyId));
     }
+
 
 
 
@@ -99,9 +108,12 @@ public class PuzzleFetcher : MonoBehaviour
         string selectedAnswer = optionFields[index].text;
         Debug.Log("Selected Answer: " + selectedAnswer);
 
-        if (selectedAnswer == currentPuzzle.correct_answer)
+        bool isCorrect = selectedAnswer == currentPuzzle.correct_answer;
+
+        if (isCorrect)
         {
             Debug.Log("Correct Answer!");
+            SetButtonColor(answerButtons[index], Color.green);
 
             if (doorAnimator != null)
             {
@@ -117,9 +129,29 @@ public class PuzzleFetcher : MonoBehaviour
         else
         {
             Debug.Log("Wrong Answer!");
+            SetButtonColor(answerButtons[index], Color.red);
         }
+
+        StartCoroutine(ResetButtonColorAfterDelay(answerButtons[index], index, 3f));
     }
 
+
+    private void SetButtonColor(Button button, Color color)
+    {
+        ColorBlock cb = button.colors;
+        cb.normalColor = color;
+        cb.highlightedColor = color;
+        cb.pressedColor = color;
+        cb.selectedColor = color;
+        button.colors = cb;
+    }
+
+    private IEnumerator ResetButtonColorAfterDelay(Button button, int index, float delay)
+    {
+        yield return new WaitForSeconds(delay);
+
+        button.colors = originalColors[index];
+    }
 
 
     private string FixJsonArray(string json)
