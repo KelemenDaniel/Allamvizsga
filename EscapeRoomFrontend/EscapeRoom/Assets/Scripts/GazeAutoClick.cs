@@ -6,7 +6,6 @@ public class GazeAutoClick : MonoBehaviour
 {
     public float gazeClickDelay = 2.0f;
     public Image gazeProgressImage;
-
     private float gazeTimer = 0f;
     private GameObject lastGazedObject = null;
 
@@ -19,18 +18,20 @@ public class GazeAutoClick : MonoBehaviour
 
         var results = new System.Collections.Generic.List<RaycastResult>();
         EventSystem.current.RaycastAll(pointerData, results);
-
         GameObject currentGazed = results.Count > 0 ? results[0].gameObject : null;
 
         Button button = currentGazed?.GetComponentInParent<Button>();
         Dropdown dropdown = currentGazed?.GetComponentInParent<Dropdown>();
         Toggle toggle = currentGazed?.GetComponentInParent<Toggle>();
 
-        bool validGazeTarget = button || dropdown || toggle ;
-        //if (results.Count > 0)
-        //    Debug.Log("Gaze hit: " + results[0].gameObject.name);
-        //else
-        //    Debug.Log("Gaze hit: nothing");
+        GazeActivatePostit postit = currentGazed?.GetComponentInParent<GazeActivatePostit>();
+
+        bool validGazeTarget = button || dropdown || toggle || postit;
+
+        if (results.Count > 0)
+            Debug.Log("Gaze hit: " + results[0].gameObject.name);
+        else
+            Debug.Log("Gaze hit: nothing");
 
         if (validGazeTarget)
         {
@@ -38,13 +39,14 @@ public class GazeAutoClick : MonoBehaviour
             {
                 if (lastGazedObject != null)
                     ExecuteEvents.Execute(lastGazedObject, pointerData, ExecuteEvents.pointerExitHandler);
-
                 ExecuteEvents.Execute(currentGazed, pointerData, ExecuteEvents.pointerEnterHandler);
-
                 lastGazedObject = currentGazed;
                 gazeTimer = 0f;
                 if (gazeProgressImage)
+                {
                     gazeProgressImage.fillAmount = 0f;
+                    gazeProgressImage.gameObject.SetActive(true);
+                }
             }
 
             gazeTimer += Time.deltaTime;
@@ -68,7 +70,11 @@ public class GazeAutoClick : MonoBehaviour
                     Debug.Log("Gaze click Dropdown: " + dropdown.name);
                     ExecuteEvents.Execute(dropdown.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
                 }
-
+                else if (postit)
+                {
+                    Debug.Log("Gaze click Postit: " + postit.name);
+                    ExecuteEvents.Execute(postit.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
+                }
                 ResetGaze();
             }
         }
@@ -76,7 +82,6 @@ public class GazeAutoClick : MonoBehaviour
         {
             if (lastGazedObject != null)
                 ExecuteEvents.Execute(lastGazedObject, pointerData, ExecuteEvents.pointerExitHandler);
-
             ResetGaze();
         }
     }
@@ -86,6 +91,9 @@ public class GazeAutoClick : MonoBehaviour
         lastGazedObject = null;
         gazeTimer = 0f;
         if (gazeProgressImage)
+        {
             gazeProgressImage.fillAmount = 0f;
+            gazeProgressImage.gameObject.SetActive(false);
+        }
     }
 }
