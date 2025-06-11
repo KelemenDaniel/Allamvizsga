@@ -37,6 +37,7 @@ public class StoryMenu : MonoBehaviour
     };
 
     private Dictionary<int, string> storyTexts = new Dictionary<int, string>();
+    private Dictionary<int, string> storyDifficulties = new Dictionary<int, string>();
 
     void Start()
     {
@@ -172,6 +173,7 @@ public class StoryMenu : MonoBehaviour
         btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
 
         storyTexts[storyId] = fullText;
+        storyDifficulties[storyId] = difficulty;
 
         btn.onClick.AddListener(() => SelectStory(storyId));
 
@@ -206,12 +208,12 @@ public class StoryMenu : MonoBehaviour
 
         string fullText = $"{typeHu} ({difficulty})\n{description}";
         storyTexts[id] = fullText;
+        storyDifficulties[id] = difficulty;
 
         Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
         btn.GetComponentInChildren<Text>().text = fullText;
         btn.onClick.AddListener(() => SelectStory(id));
     }
-
 
     void SelectStory(int id)
     {
@@ -223,16 +225,16 @@ public class StoryMenu : MonoBehaviour
         }
 
         string story = storyTexts[id];
+        string difficulty = storyDifficulties.ContainsKey(id) ? storyDifficulties[id] : "közepes";
+
         PlayerPrefs.SetString("SelectedStory", story);
         PlayerPrefs.SetInt("SelectedStoryId", id);
+        PlayerPrefs.SetString("SelectedDifficulty", difficulty);
         PlayerPrefs.Save();
 
-        Debug.Log($"Saved SelectedStoryId = {id}");
+        Debug.Log($"Saved SelectedStoryId = {id}, Difficulty = {difficulty}");
         SceneManager.LoadScene("StoryIntroScene");
     }
-
-
-
 
     IEnumerator Get(string endpoint, System.Action<string> callback)
     {
@@ -254,5 +256,4 @@ public class StoryMenu : MonoBehaviour
         yield return new WaitForSeconds(seconds);
         outputText.enabled = false;
     }
-
 }

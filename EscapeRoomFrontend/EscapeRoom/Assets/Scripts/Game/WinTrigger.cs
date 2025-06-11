@@ -63,6 +63,25 @@ public class WinTrigger : MonoBehaviour
     {
         if (hasWon) return;
 
+        if (GameTimer.Instance != null)
+        {
+            if (GameTimer.Instance.HasLost())
+            {
+                Debug.Log("Cannot win - time has already run out!");
+                return;
+            }
+
+            GameTimer.Instance.PlayerWon();
+            Debug.Log("Final Time: " + GameTimer.Instance.GetFormattedTime());
+
+            PlayerPrefs.SetInt("PlayerLost", 0);
+            PlayerPrefs.SetFloat("StartTime", GameTimer.Instance.GetStartTime());
+            PlayerPrefs.SetFloat("FinalTime", GameTimer.Instance.GetCurrentTime());
+            PlayerPrefs.SetString("FormattedFinalTime", GameTimer.Instance.GetFormattedTime());
+            PlayerPrefs.SetInt("WasCountingUp", GameTimer.Instance.IsCountingUp() ? 1 : 0);
+            PlayerPrefs.Save();
+        }
+
         hasWon = true;
         StartCoroutine(WinSequence());
     }
@@ -92,5 +111,4 @@ public class WinTrigger : MonoBehaviour
 
         fadeImage.color = targetColor;
     }
-
 }
