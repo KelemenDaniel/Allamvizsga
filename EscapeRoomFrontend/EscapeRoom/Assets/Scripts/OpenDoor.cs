@@ -6,6 +6,8 @@ public class OpenDoor : MonoBehaviour
 {
     public Animator animator;
     bool opened = false;
+    public GameObject door;
+
 
     public void Open()
     {
@@ -13,6 +15,8 @@ public class OpenDoor : MonoBehaviour
         opened = true;
         Debug.Log("Opening door");
         animator.SetTrigger("Open");
+        door.layer = LayerMask.NameToLayer("Default");
+
     }
 
 
