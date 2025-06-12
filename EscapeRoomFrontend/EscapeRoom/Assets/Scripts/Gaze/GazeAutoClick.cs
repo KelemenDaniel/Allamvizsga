@@ -23,10 +23,10 @@ public class GazeAutoClick : MonoBehaviour
         Button button = currentGazed?.GetComponentInParent<Button>();
         Dropdown dropdown = currentGazed?.GetComponentInParent<Dropdown>();
         Toggle toggle = currentGazed?.GetComponentInParent<Toggle>();
-
         GazeActivatePostit postit = currentGazed?.GetComponentInParent<GazeActivatePostit>();
+        GeminiCharacterHintProvider character = currentGazed?.GetComponentInParent<GeminiCharacterHintProvider>();
 
-        bool validGazeTarget = button || dropdown || toggle || postit;
+        bool validGazeTarget = button || dropdown || toggle || postit || character;
 
         if (results.Count > 0)
             Debug.Log("Gaze hit: " + results[0].gameObject.name);
@@ -74,6 +74,11 @@ public class GazeAutoClick : MonoBehaviour
                 {
                     Debug.Log("Gaze click Postit: " + postit.name);
                     ExecuteEvents.Execute(postit.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
+                }
+                else if (character)
+                {
+                    Debug.Log("Gaze click Character: " + character.name);
+                    ExecuteEvents.Execute(character.gameObject, pointerData, ExecuteEvents.pointerClickHandler);
                 }
                 ResetGaze();
             }

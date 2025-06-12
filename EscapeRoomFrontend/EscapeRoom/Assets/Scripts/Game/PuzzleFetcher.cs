@@ -159,4 +159,27 @@ public class PuzzleFetcher : MonoBehaviour
     {
         return "{\"Items\":" + json + "}";
     }
+
+    public Puzzle GetCurrentPuzzle()
+    {
+        return currentPuzzle;
+    }
+
+    public string GetCurrentPuzzleInfoForHint()
+    {
+        if (currentPuzzle == null)
+            return "Nincs aktív puzzle.";
+
+        return $"Kérdés: {currentPuzzle.question}\nLehetséges válaszok: {string.Join(", ", currentPuzzle.possible_answers)}";
+    }
+
+    public bool HasActivePuzzle()
+    {
+        return currentPuzzle != null;
+    }
+
+    public int GetCurrentPuzzleIndex()
+    {
+        return puzzleIndex;
+    }
 }
