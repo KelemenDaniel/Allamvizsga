@@ -12,7 +12,7 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
     [SerializeField] private PuzzleFetcher roomPuzzleFetcher; // Direct reference to this room's PuzzleFetcher
 
     [Header("Gemini AI Settings")]
-    [SerializeField] private string geminiApiKey = "YOUR_GEMINI_API_KEY_HERE";
+    [SerializeField, HideInInspector] private string geminiApiKey; // No hardcoded default
     private string geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
     [Header("UI Settings")]

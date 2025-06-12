@@ -416,7 +416,7 @@ MonoBehaviour:
   panelColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.9}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   buttonColor: {r: 0.3, g: 0.3, b: 0.8, a: 1}
-  hintDisplayTime: 20
+  hintDisplayTime: 15
   hintPanel: {fileID: 0}
   hintText: {fileID: 0}
   closeButton: {fileID: 0}
@@ -25904,7 +25904,7 @@ Light:
   m_BounceIntensity: 1
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
-  m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
+  m_BoundingSphereOverride: {x: 5.187761e-39, y: 5.094851e-39, z: 5.094851e-39, w: 5.094851e-39}
   m_UseBoundingSphereOverride: 0
   m_ShadowRadius: 0
   m_ShadowAngle: 0
