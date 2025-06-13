@@ -78,7 +78,6 @@ public class WinTrigger : MonoBehaviour
             PlayerPrefs.SetFloat("StartTime", GameTimer.Instance.GetStartTime());
             PlayerPrefs.SetFloat("FinalTime", GameTimer.Instance.GetCurrentTime());
             PlayerPrefs.SetString("FormattedFinalTime", GameTimer.Instance.GetFormattedTime());
-            PlayerPrefs.SetInt("WasCountingUp", GameTimer.Instance.IsCountingUp() ? 1 : 0);
             PlayerPrefs.Save();
         }
 

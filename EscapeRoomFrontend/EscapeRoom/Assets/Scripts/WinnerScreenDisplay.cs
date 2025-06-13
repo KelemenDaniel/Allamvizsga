@@ -2,6 +2,7 @@
 using UnityEngine.UI;
 using UnityEngine.EventSystems;
 using System.Collections;
+using UnityEngine.SceneManagement;
 
 public class WinnerScreenDisplay : MonoBehaviour
 {
@@ -158,7 +159,6 @@ public class WinnerScreenDisplay : MonoBehaviour
 
     void DisplayTimerData()
     {
-        bool hasTimerData = PlayerPrefs.HasKey("FinalTime");
         bool playerLost = PlayerPrefs.GetInt("PlayerLost", 0) == 1;
 
         if (congratulationsText != null)
@@ -175,32 +175,25 @@ public class WinnerScreenDisplay : MonoBehaviour
             }
         }
 
-        if (hasTimerData && finalTimeText != null)
-        {
-            float startTime = PlayerPrefs.GetFloat("StartTime", 0f);
-            float finalTime = PlayerPrefs.GetFloat("FinalTime", 0f);
-            string displayText = "";
+        float startTime = PlayerPrefs.GetFloat("StartTime", 0f);
+        float finalTime = PlayerPrefs.GetFloat("FinalTime", 0f);
+        string displayText = "";
 
-            if (playerLost)
-            {
-                displayText = "Kifutottál az időből!\nSok sikert következő alkalommal!";
-                finalTimeText.color = Color.red;
-            }
-            else
-            {
-                float playtime = startTime - finalTime;
-                string playtimeFormatted = FormatTime(playtime);
-                displayText = "Teljesítési idő: " + playtimeFormatted;
-                finalTimeText.color = Color.white;
-            }
-
-            finalTimeText.text = displayText;
-            Debug.Log("Displayed timer data - Player lost: " + playerLost);
-        }
-        else if (finalTimeText != null)
+        if (playerLost)
         {
-            finalTimeText.text = "";
+            displayText = "Kifutottál az időből!\nSok sikert következő alkalommal!";
+            finalTimeText.color = Color.red;
         }
+        else
+        {
+            float playtime = startTime - finalTime;
+            string playtimeFormatted = FormatTime(playtime);
+            displayText = "Teljesítési idő: " + playtimeFormatted;
+            finalTimeText.color = Color.white;
+        }
+
+        finalTimeText.text = displayText;
+        Debug.Log("Displayed timer data - Player lost: " + playerLost);
     }
 
     string FormatTime(float time)
@@ -229,14 +222,14 @@ public class WinnerScreenDisplay : MonoBehaviour
     {
         Debug.Log("Loading game scene: " + gameSceneName);
         ClearTimerData();
-        Application.LoadLevel(gameSceneName);
+        SceneManager.LoadScene(gameSceneName);
     }
 
     public void MainMenu()
     {
         Debug.Log("Loading main menu: " + mainMenuSceneName);
         ClearTimerData();
-        Application.LoadLevel(mainMenuSceneName);
+        SceneManager.LoadScene(mainMenuSceneName);
     }
 
     public void ClearTimerData()

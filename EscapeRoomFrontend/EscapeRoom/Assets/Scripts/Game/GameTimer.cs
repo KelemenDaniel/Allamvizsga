@@ -5,25 +5,32 @@ using UnityEngine.UI;
 public class GameTimer : MonoBehaviour
 {
     [Header("Timer Settings")]
-    public bool countUp = false;
     public float baseTime = 300f;
-    public bool autoStart = true;
-    public string loseSceneName = "GameOverScene";
+
+    private string loseSceneName = "EndScene";
 
     [Header("Difficulty Time Multipliers")]
     public float easyTimeMultiplier = 1.5f;
     public float mediumTimeMultiplier = 1.0f;
     public float hardTimeMultiplier = 0.7f;
 
-    [Header("UI Settings")]
-    public Text timerText;
-    public Text timerLabelText;
-    public string timeFormat = "mm:ss";
-    public string timerLabel = "Hátralévő idő";
+    [Header("VR World Space Settings")]
+    public float canvasDistance = 0.1f;
+    public float canvasScale = 0.0004f;
+    public Vector3 canvasOffset = new Vector3(0.7f, 0.4f, 0f);
 
-    [Header("Timer Events")]
-    public UnityEngine.Events.UnityEvent OnTimerComplete;
-    public UnityEngine.Events.UnityEvent OnTimeRunsOut;
+    private Canvas timerCanvas;
+    private Text timerText;
+    private Text timerLabelText;
+
+    [Header("Camera Assignment")]
+    public Camera playerCamera;
+
+    private string timeFormat = "mm:ss";
+    private string timerLabel = "Hátralévő idő";
+
+    private UnityEngine.Events.UnityEvent OnTimerComplete;
+    private UnityEngine.Events.UnityEvent OnTimeRunsOut;
 
     private float currentTime;
     private float startTime;
@@ -33,20 +40,14 @@ public class GameTimer : MonoBehaviour
 
     void Start()
     {
-        if (timerText == null)
-        {
-            CreateTimerUI();
-        }
+        CreateTimerUI();
 
         CalculateStartTimeFromDifficulty();
 
         currentTime = startTime;
         UpdateTimerDisplay();
 
-        if (autoStart)
-        {
-            StartTimer();
-        }
+        StartTimer();
     }
 
     void CalculateStartTimeFromDifficulty()
@@ -77,18 +78,26 @@ public class GameTimer : MonoBehaviour
     void CreateTimerUI()
     {
         GameObject canvasGO = new GameObject("TimerCanvas");
-        Canvas canvas = canvasGO.AddComponent<Canvas>();
-        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        canvas.sortingOrder = 100;
+        timerCanvas = canvasGO.AddComponent<Canvas>();
+        timerCanvas.renderMode = RenderMode.WorldSpace;
+
+        timerCanvas.sortingOrder = 32767;
+        timerCanvas.sortingLayerName = "Default";
+        canvasGO.layer = 5;
+
+        RectTransform canvasRect = timerCanvas.GetComponent<RectTransform>();
+        canvasRect.sizeDelta = new Vector2(400, 200);
+        canvasGO.transform.localScale = Vector3.one * canvasScale;
 
         CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+        scaler.scaleFactor = 1;
 
         canvasGO.AddComponent<GraphicRaycaster>();
 
         GameObject labelGO = new GameObject("TimerLabel");
         labelGO.transform.SetParent(canvasGO.transform);
+        labelGO.layer = 5;
 
         timerLabelText = labelGO.AddComponent<Text>();
         timerLabelText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -96,20 +105,22 @@ public class GameTimer : MonoBehaviour
         timerLabelText.color = Color.white;
         timerLabelText.text = timerLabel;
         timerLabelText.alignment = TextAnchor.MiddleCenter;
+        timerLabelText.transform.localScale = new Vector3(2f, 2f, 2f);
 
         Outline labelOutline = labelGO.AddComponent<Outline>();
         labelOutline.effectColor = Color.black;
         labelOutline.effectDistance = new Vector2(2, 2);
 
         RectTransform labelRect = timerLabelText.GetComponent<RectTransform>();
-        labelRect.anchorMin = new Vector2(1f, 1f);
-        labelRect.anchorMax = new Vector2(1f, 1f);
-        labelRect.pivot = new Vector2(1f, 1f);
-        labelRect.anchoredPosition = new Vector2(-20f, -20f);
-        labelRect.sizeDelta = new Vector2(250f, 40f);
+        labelRect.anchorMin = new Vector2(0.5f, 0.7f);
+        labelRect.anchorMax = new Vector2(0.5f, 0.7f);
+        labelRect.pivot = new Vector2(0.5f, 0.5f);
+        labelRect.anchoredPosition = Vector2.zero;
+        labelRect.sizeDelta = new Vector2(350f, 40f);
 
         GameObject timerGO = new GameObject("TimerText");
         timerGO.transform.SetParent(canvasGO.transform);
+        timerGO.layer = 5;
 
         timerText = timerGO.AddComponent<Text>();
         timerText.font = Resources.GetBuiltinResource<Font>("Arial.ttf");
@@ -117,41 +128,38 @@ public class GameTimer : MonoBehaviour
         timerText.color = Color.white;
         timerText.text = "00:00";
         timerText.alignment = TextAnchor.MiddleCenter;
+        timerText.transform.localScale = new Vector3(2f, 2f, 2f);
 
         Outline outline = timerGO.AddComponent<Outline>();
         outline.effectColor = Color.black;
         outline.effectDistance = new Vector2(2, 2);
 
         RectTransform rectTransform = timerText.GetComponent<RectTransform>();
-        rectTransform.anchorMin = new Vector2(1f, 1f);
-        rectTransform.anchorMax = new Vector2(1f, 1f);
-        rectTransform.pivot = new Vector2(1f, 1f);
-        rectTransform.anchoredPosition = new Vector2(-20f, -70f);
-        rectTransform.sizeDelta = new Vector2(200f, 60f);
-    }
+        rectTransform.anchorMin = new Vector2(0.5f, 0.3f);
+        rectTransform.anchorMax = new Vector2(0.5f, 0.3f);
+        rectTransform.pivot = new Vector2(0.5f, 0.5f);
+        rectTransform.anchoredPosition = Vector2.zero;
+        rectTransform.sizeDelta = new Vector2(300f, 60f);
 
+        UpdateCanvasPosition();
+    }
     void Update()
     {
+        UpdateCanvasPosition();
+
         if (isRunning && !isComplete && !hasLost)
         {
-            if (countUp)
-            {
-                currentTime += Time.deltaTime;
-            }
-            else
-            {
-                currentTime -= Time.deltaTime;
+            currentTime -= Time.deltaTime;
 
-                if (currentTime <= 0f)
-                {
-                    currentTime = 0f;
-                    TimeRunsOut();
-                }
+            if (currentTime <= 0f)
+            {
+                currentTime = 0f;
+                TimeRunsOut();
             }
 
             UpdateTimerDisplay();
 
-            if (!countUp && currentTime <= 30f && timerText != null)
+            if (currentTime <= 30f && timerText != null)
             {
                 timerText.color = Color.red;
                 if (timerLabelText != null)
@@ -160,6 +168,25 @@ public class GameTimer : MonoBehaviour
                 }
             }
         }
+    }
+
+    void UpdateCanvasPosition()
+    {
+        if (timerCanvas == null || playerCamera == null) return;
+
+        Vector3 cameraForward = playerCamera.transform.forward;
+        Vector3 cameraRight = playerCamera.transform.right;
+        Vector3 cameraUp = playerCamera.transform.up;
+
+        Vector3 finalPosition = playerCamera.transform.position
+            + cameraForward * 0.5f
+            + cameraRight * canvasOffset.x
+            + cameraUp * canvasOffset.y;
+
+        timerCanvas.transform.position = finalPosition;
+
+        timerCanvas.transform.LookAt(playerCamera.transform);
+        timerCanvas.transform.Rotate(0, 180, 0);
     }
 
     void UpdateTimerDisplay()
@@ -253,11 +280,6 @@ public class GameTimer : MonoBehaviour
     public float GetStartTime()
     {
         return startTime;
-    }
-
-    public bool IsCountingUp()
-    {
-        return countUp;
     }
 
     public bool IsRunning()
