@@ -6,33 +6,31 @@ using UnityEngine.EventSystems;
 using UnityEngine.Networking;
 using System.Text;
 
-public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, IPointerEnterHandler, IPointerExitHandler
+public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler
 {
     [Header("Room Assignment")]
-    [SerializeField] private PuzzleFetcher roomPuzzleFetcher; // Direct reference to this room's PuzzleFetcher
+    [SerializeField] private PuzzleFetcher roomPuzzleFetcher;
 
     [Header("Gemini AI Settings")]
-    [SerializeField, HideInInspector] private string geminiApiKey; // No hardcoded default
+    [SerializeField, HideInInspector] private string geminiApiKey; 
     private string geminiApiUrl = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent";
 
+    [Header("VR World Space Settings")]
+    [SerializeField] private Transform playerCamera;
+
+    private float canvasDistance = 2.0f;
+    private float canvasHeight = 1.5f;
+    private Vector2 canvasSize = new Vector2(2.0f, 1.5f);
+    private float canvasScale = 0.005f;
+    private bool facePlayer = true;
+
     [Header("UI Settings")]
-    public bool autoGenerateUI = true;
     public Font uiFont;
-    public Color panelColor = new Color(0.1f, 0.1f, 0.1f, 0.9f);
-    public Color textColor = Color.white;
-    public Color buttonColor = new Color(0.3f, 0.3f, 0.8f, 1f);
-    public float hintDisplayTime = 10f;
 
-    [Header("Manual UI Assignment (if not auto-generating)")]
-    public GameObject hintPanel;
-    public Text hintText;
-    public Button closeButton;
-    public GameObject loadingIndicator;
-
-    [Header("Character Interaction")]
-    public Outline characterOutline;
-    public AudioSource audioSource;
-    public AudioClip clickSound;
+    private Color panelColor = new Color(0.1f, 0.1f, 0.1f, 0.9f);
+    private Color textColor = Color.white;
+    private Color buttonColor = new Color(0.3f, 0.3f, 0.8f, 1f);
+    private float hintDisplayTime = 10f;
 
     [Header("Fallback Hints")]
     public string[] fallbackHints =
@@ -54,6 +52,10 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
     private PuzzleFetcher puzzleFetcher;
     private Coroutine autoCloseCoroutine;
     private bool isRequestingHint = false;
+
+    private GameObject canvasGameObject;
+    private Vector3 canvasBasePosition;
+    private Quaternion canvasBaseRotation;
 
     [System.Serializable]
     public class GeminiRequest
@@ -87,7 +89,17 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
 
     void Start()
     {
-        // Use the assigned room PuzzleFetcher, or find one if not assigned
+        string envKey = System.Environment.GetEnvironmentVariable("GEMINI_API_KEY");
+        if (!string.IsNullOrEmpty(envKey))
+        {
+            SetGeminiApiKey(envKey);
+            Debug.Log("Gemini API key loaded from environment variable.");
+        }
+        else
+        {
+            Debug.LogWarning("Environment variable 'GEMINI_API_KEY' not found. Using fallback hints.");
+        }
+
         if (roomPuzzleFetcher != null)
         {
             puzzleFetcher = roomPuzzleFetcher;
@@ -95,12 +107,31 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         }
         else
         {
-            // Fallback: try to find PuzzleFetcher in the same room (same parent or nearby)
             puzzleFetcher = FindPuzzleFetcherInRoom();
             if (puzzleFetcher == null)
             {
                 Debug.LogWarning("No PuzzleFetcher assigned and none found in room. Using first available.");
                 puzzleFetcher = FindObjectOfType<PuzzleFetcher>();
+            }
+        }
+
+        if (playerCamera == null)
+        {
+            Camera[] cameras = FindObjectsOfType<Camera>();
+            foreach (Camera cam in cameras)
+            {
+                if (cam.gameObject.name.Contains("Eye") || cam.gameObject.name.Contains("Camera") || cam.CompareTag("MainCamera"))
+                {
+                    playerCamera = cam.transform;
+                    Debug.Log($"Auto-found player camera: {playerCamera.name}");
+                    break;
+                }
+            }
+
+            if (playerCamera == null)
+            {
+                playerCamera = Camera.main?.transform;
+                Debug.Log("Using Main Camera as player camera");
             }
         }
 
@@ -112,26 +143,23 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
             Debug.Log("Created EventSystem for UI interaction");
         }
 
-        if (autoGenerateUI)
-        {
-            CreateUI();
-        }
-        else
-        {
-            SetupManualUI();
-        }
-
-        if (characterOutline == null)
-            characterOutline = GetComponent<Outline>();
-
-        if (characterOutline != null)
-            characterOutline.enabled = false;
+        CreateVRUI();
     }
 
-    // Method to find PuzzleFetcher in the same room
+    void Update()
+    {
+        if (facePlayer && canvasGameObject != null && canvasGameObject.activeInHierarchy && playerCamera != null)
+        {
+            if (playerCamera != null && canvasGameObject != null)
+            {
+                Vector3 directionToCamera = (playerCamera.transform.position - canvasGameObject.transform.position).normalized;
+                canvasGameObject.transform.rotation = Quaternion.LookRotation(directionToCamera);
+            }
+        }
+    }
+
     private PuzzleFetcher FindPuzzleFetcherInRoom()
     {
-        // Option 1: Look for PuzzleFetcher in the same parent GameObject
         if (transform.parent != null)
         {
             PuzzleFetcher parentFetcher = transform.parent.GetComponentInChildren<PuzzleFetcher>();
@@ -142,7 +170,6 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
             }
         }
 
-        // Option 2: Look for PuzzleFetcher in the same root GameObject
         Transform rootTransform = transform.root;
         PuzzleFetcher rootFetcher = rootTransform.GetComponentInChildren<PuzzleFetcher>();
         if (rootFetcher != null)
@@ -154,7 +181,6 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         return null;
     }
 
-    // Public method to set the room's PuzzleFetcher (can be called from outside)
     public void SetRoomPuzzleFetcher(PuzzleFetcher fetcher)
     {
         roomPuzzleFetcher = fetcher;
@@ -162,27 +188,47 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         Debug.Log($"PuzzleFetcher set for room: {fetcher.name}");
     }
 
-    private void CreateUI()
+    private void CreateVRUI()
     {
-        GameObject canvasGO = new GameObject("HintCanvas");
-        uiCanvas = canvasGO.AddComponent<Canvas>();
-        uiCanvas.renderMode = RenderMode.ScreenSpaceOverlay;
-        uiCanvas.sortingOrder = 1000;
-        uiCanvas.planeDistance = 0.1f;
+        canvasGameObject = new GameObject("HintCanvas_WorldSpace");
 
-        CanvasScaler scaler = canvasGO.AddComponent<CanvasScaler>();
-        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
-        scaler.referenceResolution = new Vector2(1920, 1080);
-        scaler.matchWidthOrHeight = 0.5f;
+        Vector3 characterForward = transform.forward;
+        canvasBasePosition = transform.position + characterForward * canvasDistance + Vector3.up * canvasHeight;
 
-        GraphicRaycaster raycaster = canvasGO.AddComponent<GraphicRaycaster>();
+        if (playerCamera != null)
+        {
+            Vector3 directionToCamera = (playerCamera.transform.position - canvasBasePosition).normalized;
+            canvasBaseRotation = Quaternion.LookRotation(directionToCamera);
+        }
+        else
+        {
+            canvasBaseRotation = Quaternion.LookRotation(-characterForward);
+        }
 
-        Debug.Log("Created dedicated HintCanvas with high sorting order");
+        canvasGameObject.transform.position = canvasBasePosition;
+        canvasGameObject.transform.rotation = canvasBaseRotation;
+
+        uiCanvas = canvasGameObject.AddComponent<Canvas>();
+        uiCanvas.renderMode = RenderMode.WorldSpace;
+        uiCanvas.worldCamera = playerCamera?.GetComponent<Camera>();
+
+        RectTransform canvasRect = canvasGameObject.GetComponent<RectTransform>();
+        canvasRect.sizeDelta = canvasSize * 150f;
+        canvasRect.localScale = Vector3.one * canvasScale * 1.5f;
+
+
+        CanvasScaler scaler = canvasGameObject.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ConstantPixelSize;
+        scaler.scaleFactor = 1f;
+
+        GraphicRaycaster raycaster = canvasGameObject.AddComponent<GraphicRaycaster>();
+
+        Debug.Log($"Created VR WorldSpace HintCanvas at position: {canvasBasePosition}");
 
         CreateHintPanel();
         CreateLoadingIndicator();
 
-        Debug.Log("UI generated successfully!");
+        Debug.Log("VR UI generated successfully!");
     }
 
     private void CreateHintPanel()
@@ -196,10 +242,12 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         canvasGroup.blocksRaycasts = true;
 
         RectTransform panelRect = generatedHintPanel.AddComponent<RectTransform>();
-        panelRect.anchorMin = new Vector2(0.15f, 0.25f);
-        panelRect.anchorMax = new Vector2(0.6f, 0.75f);
+        panelRect.anchorMin = new Vector2(0.02f, 0.02f);
+        panelRect.anchorMax = new Vector2(0.98f, 0.98f);
         panelRect.offsetMin = Vector2.zero;
         panelRect.offsetMax = Vector2.zero;
+        panelRect.transform.localRotation = Quaternion.Euler(0, 180, 0);
+        panelRect.transform.localScale = new Vector3(0.5f, 0.5f, 0.5f);
 
         Image panelImage = generatedHintPanel.AddComponent<Image>();
         panelImage.color = panelColor;
@@ -217,18 +265,20 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         titleGO.transform.SetParent(generatedHintPanel.transform, false);
 
         RectTransform titleRect = titleGO.AddComponent<RectTransform>();
-        titleRect.anchorMin = new Vector2(0.05f, 0.85f);
-        titleRect.anchorMax = new Vector2(0.95f, 0.98f);
+        titleRect.anchorMin = new Vector2(0.02f, 0.88f);
+        titleRect.anchorMax = new Vector2(0.98f, 0.98f);
         titleRect.offsetMin = Vector2.zero;
         titleRect.offsetMax = Vector2.zero;
 
         Text titleText = titleGO.AddComponent<Text>();
-        titleText.text = "💡 Segítség";
+        titleText.text = "Segítség";
         titleText.font = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        titleText.fontSize = 28;
+        titleText.fontSize = 18;
         titleText.color = textColor;
         titleText.alignment = TextAnchor.MiddleCenter;
         titleText.fontStyle = FontStyle.Bold;
+        titleText.transform.localScale = new Vector3(0.8f, 0.8f, 0.8f);
+        titleText.transform.localRotation = Quaternion.identity;
 
         Shadow titleShadow = titleGO.AddComponent<Shadow>();
         titleShadow.effectColor = new Color(0, 0, 0, 0.8f);
@@ -238,19 +288,20 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         hintTextGO.transform.SetParent(generatedHintPanel.transform, false);
 
         RectTransform hintTextRect = hintTextGO.AddComponent<RectTransform>();
-        hintTextRect.anchorMin = new Vector2(0.08f, 0.18f);
-        hintTextRect.anchorMax = new Vector2(0.92f, 0.8f);
+        hintTextRect.anchorMin = new Vector2(0f, 0.15f);
+        hintTextRect.anchorMax = new Vector2(1f, 0.98f);
         hintTextRect.offsetMin = Vector2.zero;
         hintTextRect.offsetMax = Vector2.zero;
 
         generatedHintText = hintTextGO.AddComponent<Text>();
         generatedHintText.text = "";
         generatedHintText.font = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        generatedHintText.fontSize = 20;
+        generatedHintText.fontSize = 22;
         generatedHintText.color = textColor;
-        generatedHintText.alignment = TextAnchor.MiddleCenter;
+        generatedHintText.alignment = TextAnchor.UpperLeft;
         generatedHintText.horizontalOverflow = HorizontalWrapMode.Wrap;
         generatedHintText.verticalOverflow = VerticalWrapMode.Overflow;
+        generatedHintText.transform.localScale = new Vector3(0.7f, 0.7f, 0.7f);
 
         Shadow hintShadow = hintTextGO.AddComponent<Shadow>();
         hintShadow.effectColor = new Color(0, 0, 0, 0.6f);
@@ -260,14 +311,16 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         closeButtonGO.transform.SetParent(generatedHintPanel.transform, false);
 
         RectTransform closeButtonRect = closeButtonGO.AddComponent<RectTransform>();
-        closeButtonRect.anchorMin = new Vector2(0.3f, 0.02f);
-        closeButtonRect.anchorMax = new Vector2(0.7f, 0.15f);
+        closeButtonRect.anchorMin = new Vector2(0.25f, 0.02f);
+        closeButtonRect.anchorMax = new Vector2(0.75f, 0.14f);
         closeButtonRect.offsetMin = Vector2.zero;
         closeButtonRect.offsetMax = Vector2.zero;
 
         generatedCloseButton = closeButtonGO.AddComponent<Button>();
         Image closeButtonImage = closeButtonGO.AddComponent<Image>();
         closeButtonImage.color = buttonColor;
+        generatedCloseButton.transform.localScale = Vector3.one;
+        generatedCloseButton.transform.localRotation = Quaternion.identity;
 
         Shadow buttonShadow = closeButtonGO.AddComponent<Shadow>();
         buttonShadow.effectColor = new Color(0, 0, 0, 0.5f);
@@ -285,10 +338,12 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         Text closeText = closeTextGO.AddComponent<Text>();
         closeText.text = "Bezárás";
         closeText.font = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        closeText.fontSize = 18;
+        closeText.fontSize = 16;
         closeText.color = Color.white;
         closeText.alignment = TextAnchor.MiddleCenter;
         closeText.fontStyle = FontStyle.Bold;
+        closeText.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
+        closeText.transform.localRotation = Quaternion.identity;
 
         generatedCloseButton.onClick.AddListener(CloseHint);
 
@@ -300,9 +355,8 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
 
         generatedHintPanel.SetActive(false);
 
-        Debug.Log("Hint panel created and positioned in front of character");
+        Debug.Log("VR Hint panel created with maximum width text field");
     }
-
     private void CreateLoadingIndicator()
     {
         generatedLoadingIndicator = new GameObject("LoadingIndicator");
@@ -314,17 +368,21 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         loadingCanvasGroup.blocksRaycasts = true;
 
         RectTransform loadingRect = generatedLoadingIndicator.AddComponent<RectTransform>();
-        loadingRect.anchorMin = new Vector2(0.25f, 0.4f);
-        loadingRect.anchorMax = new Vector2(0.55f, 0.6f);
+        loadingRect.anchorMin = new Vector2(0.2f, 0.35f);
+        loadingRect.anchorMax = new Vector2(0.8f, 0.65f);
         loadingRect.offsetMin = Vector2.zero;
         loadingRect.offsetMax = Vector2.zero;
+        loadingRect.transform.localRotation = Quaternion.Euler(0, 180, 0);
+        loadingRect.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
+
+
 
         Image loadingImage = generatedLoadingIndicator.AddComponent<Image>();
         loadingImage.color = new Color(0.15f, 0.15f, 0.15f, 0.95f);
 
         Shadow loadingShadow = generatedLoadingIndicator.AddComponent<Shadow>();
         loadingShadow.effectColor = new Color(0, 0, 0, 0.8f);
-        loadingShadow.effectDistance = new Vector2(5, -5);
+        loadingShadow.effectDistance = new Vector2(8, -8);
 
         GameObject loadingTextGO = new GameObject("LoadingText");
         loadingTextGO.transform.SetParent(generatedLoadingIndicator.transform, false);
@@ -335,23 +393,25 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         loadingTextRect.offsetMin = Vector2.zero;
         loadingTextRect.offsetMax = Vector2.zero;
 
+
         generatedLoadingText = loadingTextGO.AddComponent<Text>();
-        generatedLoadingText.text = "AI gondolkodik... 🤔";
+        generatedLoadingText.text = "AI gondolkodik...";
         generatedLoadingText.font = uiFont != null ? uiFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        generatedLoadingText.fontSize = 18;
+        generatedLoadingText.fontSize = 16;
         generatedLoadingText.color = Color.white;
         generatedLoadingText.alignment = TextAnchor.MiddleCenter;
         generatedLoadingText.fontStyle = FontStyle.Bold;
+        generatedLoadingText.transform.localScale = new Vector3(0.6f, 0.6f, 0.6f);
 
         Shadow loadingTextShadow = loadingTextGO.AddComponent<Shadow>();
         loadingTextShadow.effectColor = new Color(0, 0, 0, 0.7f);
-        loadingTextShadow.effectDistance = new Vector2(2, -2);
+        loadingTextShadow.effectDistance = new Vector2(3, -3);
 
         StartCoroutine(AnimateLoadingText());
 
         generatedLoadingIndicator.SetActive(false);
 
-        Debug.Log("Loading indicator created and positioned near character");
+        Debug.Log("VR Loading indicator created in world space");
     }
 
     private IEnumerator AnimateLoadingText()
@@ -370,41 +430,12 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         }
     }
 
-    private void SetupManualUI()
-    {
-        if (hintPanel != null)
-            hintPanel.SetActive(false);
-
-        if (loadingIndicator != null)
-            loadingIndicator.SetActive(false);
-
-        if (closeButton != null)
-            closeButton.onClick.AddListener(CloseHint);
-    }
-
     public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Character clicked for AI hint!");
 
-        if (audioSource != null && clickSound != null)
-            audioSource.PlayOneShot(clickSound);
-
         if (!isRequestingHint)
             StartCoroutine(RequestGeminiHint());
-    }
-
-    public void OnPointerEnter(PointerEventData eventData)
-    {
-        if (characterOutline != null)
-            characterOutline.enabled = true;
-
-        Debug.Log("Character hovered");
-    }
-
-    public void OnPointerExit(PointerEventData eventData)
-    {
-        if (characterOutline != null)
-            characterOutline.enabled = false;
     }
 
     private IEnumerator RequestGeminiHint()
@@ -422,10 +453,8 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
 
         string puzzleInfo = GetCurrentPuzzleInfo();
 
-        // Create prompt for Gemini
         string prompt = CreateHintPrompt(puzzleInfo);
 
-        // Create request
         GeminiRequest request = new GeminiRequest
         {
             contents = new GeminiContent[]
@@ -443,7 +472,6 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
         string jsonData = JsonUtility.ToJson(request);
         Debug.Log("Sending request to Gemini: " + jsonData);
 
-        // Send request to Gemini - Unity 2019 compatible
         UnityWebRequest www = new UnityWebRequest(geminiApiUrl + "?key=" + geminiApiKey, "POST");
         byte[] bodyRaw = Encoding.UTF8.GetBytes(jsonData);
         www.uploadHandler = new UploadHandlerRaw(bodyRaw);
@@ -452,10 +480,8 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
 
         yield return www.SendWebRequest();
 
-        // Hide loading
         ShowLoadingIndicator(false);
 
-        // Unity 2019 compatible error checking
         if (!www.isNetworkError && !www.isHttpError)
         {
             try
@@ -497,17 +523,13 @@ public class GeminiCharacterHintProvider : MonoBehaviour, IPointerClickHandler, 
 
     private void ShowLoadingIndicator(bool show)
     {
-        if (autoGenerateUI && generatedLoadingIndicator != null)
+        if (generatedLoadingIndicator != null)
         {
             generatedLoadingIndicator.SetActive(show);
             if (show)
             {
                 generatedLoadingIndicator.transform.SetAsLastSibling();
             }
-        }
-        else if (loadingIndicator != null)
-        {
-            loadingIndicator.SetActive(show);
         }
     }
 
@@ -551,8 +573,8 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
 
     private void ShowHint(string hint)
     {
-        Text targetHintText = autoGenerateUI ? generatedHintText : hintText;
-        GameObject targetHintPanel = autoGenerateUI ? generatedHintPanel : hintPanel;
+        Text targetHintText = generatedHintText;
+        GameObject targetHintPanel = generatedHintPanel ;
 
         if (targetHintPanel == null || targetHintText == null)
         {
@@ -563,10 +585,9 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
         targetHintText.text = hint;
         targetHintPanel.SetActive(true);
 
-        // Ensure the panel is on top
-        if (autoGenerateUI && generatedHintPanel != null)
+        if (canvasGameObject != null)
         {
-            generatedHintPanel.transform.SetAsLastSibling();
+            UpdateCanvasPosition();
         }
 
         if (autoCloseCoroutine != null)
@@ -575,7 +596,22 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
         if (hintDisplayTime > 0)
             autoCloseCoroutine = StartCoroutine(AutoCloseHint());
 
-        Debug.Log("Showing hint: " + hint);
+        Debug.Log("Showing VR hint: " + hint);
+    }
+
+    private void UpdateCanvasPosition()
+    {
+        if (canvasGameObject == null) return;
+
+        Vector3 characterForward = transform.forward;
+        Vector3 newPosition = transform.position + characterForward * canvasDistance + Vector3.up * canvasHeight;
+
+        canvasGameObject.transform.position = newPosition;
+
+        if (!facePlayer)
+        {
+            canvasGameObject.transform.rotation = Quaternion.LookRotation(characterForward);
+        }
     }
 
     private void ShowFallbackHint()
@@ -593,7 +629,7 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
 
     public void CloseHint()
     {
-        GameObject targetHintPanel = autoGenerateUI ? generatedHintPanel : hintPanel;
+        GameObject targetHintPanel = generatedHintPanel;
 
         if (targetHintPanel != null)
             targetHintPanel.SetActive(false);
@@ -604,39 +640,57 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
             autoCloseCoroutine = null;
         }
 
-        Debug.Log("Hint panel closed");
+        Debug.Log("VR Hint panel closed");
     }
 
-    // Method to manually set API key (for security)
     public void SetGeminiApiKey(string apiKey)
     {
         geminiApiKey = apiKey;
     }
 
-    // Method to customize UI colors at runtime
+    public void SetVRCanvasSettings(float distance, float height, Vector2 size, float scale)
+    {
+        canvasDistance = distance;
+        canvasHeight = height;
+        canvasSize = size;
+        canvasScale = scale;
+
+        if (canvasGameObject != null)
+        {
+            UpdateCanvasPosition();
+            RectTransform canvasRect = canvasGameObject.GetComponent<RectTransform>();
+            canvasRect.sizeDelta = canvasSize * 100f;
+            canvasRect.localScale = Vector3.one * canvasScale;
+        }
+    }
+
+    public void SetPlayerCamera(Transform camera)
+    {
+        playerCamera = camera;
+        if (uiCanvas != null)
+            uiCanvas.worldCamera = camera.GetComponent<Camera>();
+    }
+
     public void SetUIColors(Color panelCol, Color textCol, Color buttonCol)
     {
         panelColor = panelCol;
         textColor = textCol;
         buttonColor = buttonCol;
 
-        if (autoGenerateUI && generatedHintPanel != null)
+        if (generatedHintPanel != null)
         {
-            // Update existing UI colors
             generatedHintPanel.GetComponent<Image>().color = panelColor;
             generatedHintText.color = textColor;
             generatedCloseButton.GetComponent<Image>().color = buttonColor;
         }
     }
 
-    // Method to test fallback hints without API call
     [ContextMenu("Test Fallback Hint")]
     public void TestFallbackHint()
     {
         ShowFallbackHint();
     }
 
-    // Validation method to check UI setup
     [ContextMenu("Validate UI Setup")]
     public void ValidateUISetup()
     {
@@ -647,33 +701,19 @@ Válaszolj csak a tippel, egyéb szöveg nélkül.";
         else
             Debug.Log($"Canvas found: {uiCanvas.name}, Render Mode: {uiCanvas.renderMode}");
 
-        if (autoGenerateUI)
-        {
-            Debug.Log($"Generated Hint Panel: {(generatedHintPanel != null ? "OK" : "NULL")}");
-            Debug.Log($"Generated Hint Text: {(generatedHintText != null ? "OK" : "NULL")}");
-            Debug.Log($"Generated Close Button: {(generatedCloseButton != null ? "OK" : "NULL")}");
-            Debug.Log($"Generated Loading Indicator: {(generatedLoadingIndicator != null ? "OK" : "NULL")}");
-        }
-        else
-        {
-            Debug.Log($"Manual Hint Panel: {(hintPanel != null ? "OK" : "NULL")}");
-            Debug.Log($"Manual Hint Text: {(hintText != null ? "OK" : "NULL")}");
-            Debug.Log($"Manual Close Button: {(closeButton != null ? "OK" : "NULL")}");
-            Debug.Log($"Manual Loading Indicator: {(loadingIndicator != null ? "OK" : "NULL")}");
-        }
+        Debug.Log($"Generated Hint Panel: {(generatedHintPanel != null ? "OK" : "NULL")}");
+        Debug.Log($"Generated Hint Text: {(generatedHintText != null ? "OK" : "NULL")}");
+        Debug.Log($"Generated Close Button: {(generatedCloseButton != null ? "OK" : "NULL")}");
+        Debug.Log($"Generated Loading Indicator: {(generatedLoadingIndicator != null ? "OK" : "NULL")}");
 
         EventSystem eventSystem = FindObjectOfType<EventSystem>();
         Debug.Log($"EventSystem: {(eventSystem != null ? "OK" : "MISSING")}");
 
-        // Debug room assignment
         Debug.Log($"Room PuzzleFetcher: {(roomPuzzleFetcher != null ? roomPuzzleFetcher.name : "NULL")}");
         Debug.Log($"Active PuzzleFetcher: {(puzzleFetcher != null ? puzzleFetcher.name : "NULL")}");
     }
 }
 
-// Add this helper script to make the character work with your gaze system
 public class GazeActivateCharacter : MonoBehaviour
 {
-    // This empty class allows your GazeAutoClick to detect this character
-    // as a valid gaze target, just like GazeActivatePostit
 }

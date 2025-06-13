@@ -411,8 +411,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   roomPuzzleFetcher: {fileID: 805109360}
   geminiApiKey: AIzaSyAIM-NpwSCn6WJtddh9aQ7YoZODb0KWe58
+  playerCamera: {fileID: 1184050385}
   autoGenerateUI: 1
-  uiFont: {fileID: 10102, guid: 0000000000000000e000000000000000, type: 0}
+  uiFont: {fileID: 0}
   panelColor: {r: 0.1, g: 0.1, b: 0.1, a: 0.9}
   textColor: {r: 1, g: 1, b: 1, a: 1}
   buttonColor: {r: 0.3, g: 0.3, b: 0.8, a: 1}
