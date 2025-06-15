@@ -72,6 +72,7 @@ public class StoryMenu : MonoBehaviour
     IEnumerator GenerateAndUploadStory(string type, string difficulty)
     {
         string endpoint = $"/generate/{type}/{difficulty}";
+
         UnityWebRequest genRequest = UnityWebRequest.Get(baseUrl + endpoint);
         yield return genRequest.SendWebRequest();
 
@@ -101,8 +102,25 @@ public class StoryMenu : MonoBehaviour
         }
 
         var generated = JSON.Parse(rawResponse);
+
+        if (generated == null)
+        {
+            outputText.enabled = true;
+            outputText.text = "Hiba: JSON feldolgozási hiba";
+            StartCoroutine(HideOutputAfterSeconds(5));
+            yield break;
+        }
+
         string description = generated["story"];
         JSONArray puzzles = generated["puzzles"].AsArray;
+
+        if (string.IsNullOrEmpty(description))
+        {
+            outputText.enabled = true;
+            outputText.text = "Hiba: Üres történet generálódott";
+            StartCoroutine(HideOutputAfterSeconds(5));
+            yield break;
+        }
 
         JSONObject storyJson = new JSONObject();
         storyJson["description"] = description;
@@ -124,42 +142,91 @@ public class StoryMenu : MonoBehaviour
             yield break;
         }
 
-        int storyId = JSON.Parse(storyPost.downloadHandler.text)["story_id"].AsInt;
-
-        foreach (JSONNode puzzle in puzzles)
+        var storyResponse = JSON.Parse(storyPost.downloadHandler.text);
+        if (storyResponse == null || storyResponse["story_id"] == null)
         {
-            if (puzzle == null) continue;
+            outputText.enabled = true;
+            outputText.text = "Hiba: Érvénytelen válasz a szerver-től";
+            StartCoroutine(HideOutputAfterSeconds(5));
+            yield break;
+        }
 
-            string question = puzzle["question"];
-            JSONArray possibleAnswers = puzzle["possible_answers"].AsArray;
-            string correctAnswer = puzzle["correct_answer"];
+        int storyId = storyResponse["story_id"].AsInt;
 
-            if (string.IsNullOrEmpty(question) || possibleAnswers == null || string.IsNullOrEmpty(correctAnswer))
+        bool allPuzzlesUploaded = true;
+        int successfulUploads = 0;
+        int totalPuzzles = 0;
+
+        if (puzzles != null && puzzles.Count > 0)
+        {
+            bool hasNestedStructure = false;
+            if (puzzles.Count > 0)
             {
-                Debug.LogWarning("Skipping puzzle due to missing fields.");
-                continue;
+                var firstPuzzle = puzzles[0];
+                hasNestedStructure = firstPuzzle["puzzle"] != null;
             }
 
-            JSONObject puzzleJson = new JSONObject();
-            puzzleJson["story_id"] = storyId;
-            puzzleJson["question"] = question;
-            puzzleJson["possible_answers"] = possibleAnswers;
-            puzzleJson["correct_answer"] = correctAnswer;
+            totalPuzzles = puzzles.Count;
 
-            UnityWebRequest puzzlePost = new UnityWebRequest(baseUrl + "/puzzle", "POST");
-            byte[] puzzleRaw = System.Text.Encoding.UTF8.GetBytes(puzzleJson.ToString());
-            puzzlePost.uploadHandler = new UploadHandlerRaw(puzzleRaw);
-            puzzlePost.downloadHandler = new DownloadHandlerBuffer();
-            puzzlePost.SetRequestHeader("Content-Type", "application/json");
-            yield return puzzlePost.SendWebRequest();
-
-            if (puzzlePost.isNetworkError || puzzlePost.isHttpError)
+            for (int puzzleIndex = 0; puzzleIndex < puzzles.Count; puzzleIndex++)
             {
-                outputText.enabled = true;
-                outputText.text = "Hiba a puzzle feltöltésekor: " + puzzlePost.error;
-                StartCoroutine(HideOutputAfterSeconds(5));
-                yield break;
+                JSONNode puzzleContainer = puzzles[puzzleIndex];
+
+                if (puzzleContainer == null)
+                {
+                    allPuzzlesUploaded = false;
+                    continue;
+                }
+
+                JSONNode puzzle = hasNestedStructure ? puzzleContainer["puzzle"] : puzzleContainer;
+
+                if (puzzle == null)
+                {
+                    allPuzzlesUploaded = false;
+                    continue;
+                }
+
+                string question = puzzle["question"];
+                JSONArray possibleAnswers = puzzle["possible_answers"].AsArray;
+                string correctAnswer = puzzle["correct_answer"];
+
+                if (string.IsNullOrEmpty(question) || possibleAnswers == null || string.IsNullOrEmpty(correctAnswer))
+                {
+                    allPuzzlesUploaded = false;
+                    continue;
+                }
+
+                JSONObject puzzleJson = new JSONObject();
+                puzzleJson["story_id"] = storyId;
+                puzzleJson["question"] = question;
+                puzzleJson["possible_answers"] = possibleAnswers;
+                puzzleJson["correct_answer"] = correctAnswer;
+
+                UnityWebRequest puzzlePost = new UnityWebRequest(baseUrl + "/puzzle", "POST");
+                byte[] puzzleRaw = System.Text.Encoding.UTF8.GetBytes(puzzleJson.ToString());
+                puzzlePost.uploadHandler = new UploadHandlerRaw(puzzleRaw);
+                puzzlePost.downloadHandler = new DownloadHandlerBuffer();
+                puzzlePost.SetRequestHeader("Content-Type", "application/json");
+                yield return puzzlePost.SendWebRequest();
+
+                if (puzzlePost.isNetworkError || puzzlePost.isHttpError)
+                {
+                    allPuzzlesUploaded = false;
+                    continue;
+                }
+                else
+                {
+                    successfulUploads++;
+                }
             }
+        }
+
+        if (!allPuzzlesUploaded || (totalPuzzles > 0 && successfulUploads != totalPuzzles))
+        {
+            outputText.enabled = true;
+            outputText.text = $"Hiba: Nem sikerült az összes puzzle feltöltése ({successfulUploads}/{totalPuzzles})";
+            StartCoroutine(HideOutputAfterSeconds(5));
+            yield break;
         }
 
         if (storyButtonContainer.childCount >= 4)
@@ -170,7 +237,7 @@ public class StoryMenu : MonoBehaviour
         Button btn = Instantiate(storyButtonPrefab, storyButtonContainer);
         string typeHu = typeMapReverse.ContainsKey(type) ? typeMapReverse[type] : type;
         string fullText = $"{typeHu} ({difficulty})\n{description}";
-        btn.GetComponentInChildren<Text>().text = $"{typeHu} ({difficulty})\n{description}";
+        btn.GetComponentInChildren<Text>().text = fullText;
 
         storyTexts[storyId] = fullText;
         storyDifficulties[storyId] = difficulty;
@@ -191,9 +258,12 @@ public class StoryMenu : MonoBehaviour
 
         var stories = JSON.Parse(json).AsArray;
 
-        foreach (JSONNode story in stories)
+        if (stories != null)
         {
-            CreateStoryButton(story);
+            foreach (JSONNode story in stories)
+            {
+                CreateStoryButton(story);
+            }
         }
     }
 
@@ -232,7 +302,6 @@ public class StoryMenu : MonoBehaviour
         PlayerPrefs.SetString("SelectedDifficulty", difficulty);
         PlayerPrefs.Save();
 
-        Debug.Log($"Saved SelectedStoryId = {id}, Difficulty = {difficulty}");
         SceneManager.LoadScene("StoryIntroScene");
     }
 
