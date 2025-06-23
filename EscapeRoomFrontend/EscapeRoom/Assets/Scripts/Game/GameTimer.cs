@@ -14,6 +14,11 @@ public class GameTimer : MonoBehaviour
     public float mediumTimeMultiplier = 1.0f;
     public float hardTimeMultiplier = 0.7f;
 
+    [Header("Wrong Answer Penalties (seconds)")]
+    public float easyPenalty = 10f;
+    public float mediumPenalty = 20f;
+    public float hardPenalty = 30f;
+
     [Header("VR World Space Settings")]
     public float canvasDistance = 0.1f;
     public float canvasScale = 0.0004f;
@@ -40,13 +45,20 @@ public class GameTimer : MonoBehaviour
 
     void Start()
     {
-        CreateTimerUI();
+        if (playerCamera == null)
+        {
+            playerCamera = Camera.main;
+            if (playerCamera == null)
+            {
+                playerCamera = FindObjectOfType<Camera>();
+            }
+        }
 
+        CreateTimerUI();
         CalculateStartTimeFromDifficulty();
 
         currentTime = startTime;
         UpdateTimerDisplay();
-
         StartTimer();
     }
 
@@ -143,6 +155,7 @@ public class GameTimer : MonoBehaviour
 
         UpdateCanvasPosition();
     }
+
     void Update()
     {
         UpdateCanvasPosition();
@@ -336,18 +349,74 @@ public class GameTimer : MonoBehaviour
         }
     }
 
-    public static GameTimer Instance { get; private set; }
-
-    void Awake()
+    public static GameTimer FindTimer()
     {
-        if (Instance == null)
+        return FindObjectOfType<GameTimer>();
+    }
+
+    public void ApplyWrongAnswerPenalty()
+    {
+        if (hasLost || isComplete) return;
+
+        string difficulty = PlayerPrefs.GetString("SelectedDifficulty", "közepes");
+        float penalty = 0f;
+
+        switch (difficulty.ToLower())
         {
-            Instance = this;
-            DontDestroyOnLoad(gameObject);
+            case "könnyű":
+                penalty = easyPenalty;
+                break;
+            case "közepes":
+                penalty = mediumPenalty;
+                break;
+            case "nehéz":
+                penalty = hardPenalty;
+                break;
+            default:
+                penalty = mediumPenalty;
+                break;
         }
-        else
+
+        currentTime -= penalty;
+
+        if (currentTime < 0f)
         {
-            Destroy(gameObject);
+            currentTime = 0f;
+        }
+
+        Debug.Log($"Wrong answer penalty applied: -{penalty} seconds. Remaining time: {FormatTime(currentTime)}");
+
+        StartCoroutine(ShowPenaltyEffect(penalty));
+
+        UpdateTimerDisplay();
+
+        if (currentTime <= 0f)
+        {
+            TimeRunsOut();
+        }
+    }
+
+    private IEnumerator ShowPenaltyEffect(float penaltyAmount)
+    {
+        if (timerText == null) yield break;
+
+        Color originalColor = timerText.color;
+
+        timerText.color = Color.red;
+        if (timerLabelText != null)
+        {
+            timerLabelText.color = Color.red;
+        }
+
+        yield return new WaitForSeconds(0.5f);
+
+        if (currentTime > 30f)
+        {
+            timerText.color = Color.white;
+            if (timerLabelText != null)
+            {
+                timerLabelText.color = Color.white;
+            }
         }
     }
 }

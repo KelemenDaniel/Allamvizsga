@@ -23,12 +23,18 @@ public class PuzzleFetcher : MonoBehaviour
     private Puzzle[] allPuzzles;
     private ColorBlock[] originalColors;
 
-
-
+    [Header("Timer Integration")]
+    private GameTimer gameTimer;
 
     IEnumerator Start()
     {
         Debug.Log("PuzzleFetcher.Start() called");
+
+        gameTimer = GameTimer.FindTimer();
+        if (gameTimer == null)
+        {
+            Debug.LogWarning("GameTimer not found! Timer penalties will not work.");
+        }
 
         originalColors = new ColorBlock[answerButtons.Length];
         for (int i = 0; i < answerButtons.Length; i++)
@@ -47,9 +53,6 @@ public class PuzzleFetcher : MonoBehaviour
 
         yield return StartCoroutine(FetchPuzzles(storyId));
     }
-
-
-
 
     IEnumerator FetchPuzzles(int storyId)
     {
@@ -99,7 +102,6 @@ public class PuzzleFetcher : MonoBehaviour
         }
     }
 
-
     public GameObject door;
     public Animator doorAnimator;
     public GameObject littleDoor;
@@ -129,13 +131,28 @@ public class PuzzleFetcher : MonoBehaviour
         }
         else
         {
-            Debug.Log("Wrong Answer!");
+            Debug.Log($"Wrong answer from button #{index} - applying penalty");
             SetButtonColor(answerButtons[index], Color.red);
+
+            if (gameTimer != null)
+            {
+                gameTimer.ApplyWrongAnswerPenalty();
+                Debug.Log("Timer penalty applied for wrong answer!");
+            }
+            else
+            {
+                Debug.LogWarning("GameTimer reference lost! Trying to find it again...");
+                gameTimer = GameTimer.FindTimer();
+                if (gameTimer != null)
+                {
+                    gameTimer.ApplyWrongAnswerPenalty();
+                    Debug.Log("Timer penalty applied after finding timer!");
+                }
+            }
         }
 
         StartCoroutine(ResetButtonColorAfterDelay(answerButtons[index], index, 3f));
     }
-
 
     private void SetButtonColor(Button button, Color color)
     {
@@ -153,7 +170,6 @@ public class PuzzleFetcher : MonoBehaviour
 
         button.colors = originalColors[index];
     }
-
 
     private string FixJsonArray(string json)
     {
@@ -181,5 +197,10 @@ public class PuzzleFetcher : MonoBehaviour
     public int GetCurrentPuzzleIndex()
     {
         return puzzleIndex;
+    }
+
+    public void SetGameTimer(GameTimer timer)
+    {
+        gameTimer = timer;
     }
 }

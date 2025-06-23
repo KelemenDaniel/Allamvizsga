@@ -63,21 +63,21 @@ public class WinTrigger : MonoBehaviour
     {
         if (hasWon) return;
 
-        if (GameTimer.Instance != null)
+        if (GameTimer.FindTimer() != null)
         {
-            if (GameTimer.Instance.HasLost())
+            if (GameTimer.FindTimer().HasLost())
             {
                 Debug.Log("Cannot win - time has already run out!");
                 return;
             }
 
-            GameTimer.Instance.PlayerWon();
-            Debug.Log("Final Time: " + GameTimer.Instance.GetFormattedTime());
+            GameTimer.FindTimer().PlayerWon();
+            Debug.Log("Final Time: " + GameTimer.FindTimer().GetFormattedTime());
 
             PlayerPrefs.SetInt("PlayerLost", 0);
-            PlayerPrefs.SetFloat("StartTime", GameTimer.Instance.GetStartTime());
-            PlayerPrefs.SetFloat("FinalTime", GameTimer.Instance.GetCurrentTime());
-            PlayerPrefs.SetString("FormattedFinalTime", GameTimer.Instance.GetFormattedTime());
+            PlayerPrefs.SetFloat("StartTime", GameTimer.FindTimer().GetStartTime());
+            PlayerPrefs.SetFloat("FinalTime", GameTimer.FindTimer().GetCurrentTime());
+            PlayerPrefs.SetString("FormattedFinalTime", GameTimer.FindTimer().GetFormattedTime());
             PlayerPrefs.Save();
         }
 
